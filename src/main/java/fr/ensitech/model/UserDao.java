@@ -2,13 +2,21 @@ package fr.ensitech.model;
 
 import fr.ensitech.entity.Address;
 import fr.ensitech.entity.User;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.persistence.RollbackException;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.query.Query;
 
 public class UserDao implements IUserDao {
@@ -147,10 +155,21 @@ public class UserDao implements IUserDao {
     try {
       session = HibernateConnector.getSession();
 
-      Query<User> query = session.createNamedQuery("User::ByCity", User.class);
-      query.setParameter("city", city);
+//      Query<User> query = session.createNamedQuery("User::ByCity", User.class);
+//      Query<User> query = session.createQuery("SELECT u FROM User u JOIN u.addresses a ON a.city = :city", User.class);
+//      query.setParameter("city", city);
       // Using Set to avoid duplicates
-      return Set.copyOf(query.list());
+//      return query.getResultList();
+//      return Set.copyOf(query.list());
+//      return query.stream().collect(Collectors.toSet());
+
+      CriteriaBuilder cb = session.getCriteriaBuilder();
+      CriteriaQuery<User> query = cb.createQuery(User.class);
+      Root<User> userRoot = query.from(User.class);
+      query.select(userRoot)
+          .where(cb.equal(userRoot.join("addresses").get("city").as(String.class), city));
+      return session.createQuery(query).stream()
+          .collect(Collectors.toSet());
 
     } finally {
       if (session != null && session.isOpen()) {
@@ -160,20 +179,61 @@ public class UserDao implements IUserDao {
   }
 
   @Override
-  public Map<String, List<User>> getUsersByCity(String city) throws Exception {
+  public Map<String, Set<User>> getUsersByCity() throws Exception {
     Session session = null;
     try {
       session = HibernateConnector.getSession();
 
-      Query<User> query = session.createNamedQuery("User::ByCity", User.class);
-      query.setParameter("city", city);
-      List<User> users = query.list();
+//      Query<User> query = session.createNamedQuery("User::ByCity", User.class);
+//      query.setParameter("city", city);
+//      List<User> users = query.list();
+//
+//      Map<String, List<User>> result = new HashMap<>();
+//      result.put(city, users);
+//
+//      return result;
 
-      Map<String, List<User>> result = new HashMap<>();
-      result.put(city, users);
+      CriteriaBuilder cb = session.getCriteriaBuilder();
+      CriteriaQuery<String> query = cb.createQuery(String.class);
 
+      Root<Address> address = query.from(Address.class);
+//      query.select(address.get("city").as(String.class))..groupBy(address.get("city").as(String.class));
+      query.select(address.get("city").as(String.class)).distinct(true);
+      List<String> cities = session.createQuery(query).list();
+      Map<String, Set<User>> map = new HashMap<>();
+
+      for (String c : cities) {
+        Set<User> usersOfCity = getUsersOfCity(c);
+        map.put(c, usersOfCity);
+      }
+      return map;
+
+    } finally {
+      if (session != null && session.isOpen()) {
+        session.close();
+      }
+    }
+  }
+
+  @Override
+  public Map<String, List<String>> getNameLastNameEmailByBirthDate(Date dateInf, Date dateSup)
+      throws Exception {
+
+    Session session = null;
+    try {
+      session = HibernateConnector.getSession();
+      Criteria criteria = session.createCriteria(User.class);
+      List<User> users = criteria.add(Restrictions.between("birthDate", dateInf, dateSup)).list();
+      Map<String, List<String>> result = new HashMap<>();
+
+      for (User user : users) {
+        List<String> NameLastName = new ArrayList<>();
+        NameLastName.add(0, user.getName());
+        NameLastName.add(1, user.getLastName());
+        NameLastName.add(2, user.getBirthDate().toString());
+        result.put(user.getEmail(), NameLastName);
+      }
       return result;
-
 
     } finally {
       if (session != null && session.isOpen()) {
@@ -182,3 +242,4 @@ public class UserDao implements IUserDao {
     }
   }
 }
+

@@ -20,9 +20,9 @@ public class MainCreateUser {
       User user= new User();
       user.setName("Diana");
       user.setLastName("Miller");
-      user.setEmail("dianamiller@mail.com");
+      user.setEmail("dianamiller1@mail.com");
       user.setPassword("password123");
-      user.setBirthDate(Dates.convertStringToDate("01/01/1990"));
+      user.setBirthDate(Dates.convertStringToDate("01/01/2010"));
       user.setActive(false);
 
       Address address1 = new Address();

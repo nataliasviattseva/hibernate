@@ -1,6 +1,7 @@
 package fr.ensitech.model;
 
 import fr.ensitech.entity.User;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,5 +15,6 @@ public interface IUserDao {
   List<User> getAllUsers() throws Exception;
   List<User> getUsersByNameAndLastName(String name, String lastName) throws Exception;
   Set<User> getUsersOfCity(String city) throws Exception;
-  Map<String, List<User>> getUsersByCity(String city) throws Exception;
+  Map<String, Set<User>> getUsersByCity() throws Exception;
+  Map<String, List<String>> getNameLastNameEmailByBirthDate(Date dateInf, Date dateSup) throws Exception;
 }
