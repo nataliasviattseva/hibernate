@@ -13,10 +13,8 @@ import javax.persistence.RollbackException;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
-import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.criterion.Restrictions;
 import org.hibernate.query.Query;
 
 public class UserDao implements IUserDao {
@@ -54,6 +52,9 @@ public class UserDao implements IUserDao {
 
   @Override
   public User getUserById(Long id) throws Exception {
+    if (id == null || id <= 0) {
+      throw new IllegalArgumentException("ID must be a positive non-zero value.");
+    }
     Session session = null;
     try {
       session = HibernateConnector.getSession();
@@ -219,11 +220,38 @@ public class UserDao implements IUserDao {
   public Map<String, List<String>> getNameLastNameEmailByBirthDate(Date dateInf, Date dateSup)
       throws Exception {
 
+//    Session session = null;
+//    try {
+//      session = HibernateConnector.getSession();
+//      Criteria criteria = session.createCriteria(User.class);
+//      List<User> users = criteria.add(Restrictions.between("birthDate", dateInf, dateSup)).list();
+//      Map<String, List<String>> result = new HashMap<>();
+//
+//      for (User user : users) {
+//        List<String> NameLastName = new ArrayList<>();
+//        NameLastName.add(0, user.getName());
+//        NameLastName.add(1, user.getLastName());
+//        NameLastName.add(2, user.getBirthDate().toString());
+//        result.put(user.getEmail(), NameLastName);
+//      }
+//      return result;
+//
+//    } finally {
+//      if (session != null && session.isOpen()) {
+//        session.close();
+//      }
+//    }
+
     Session session = null;
     try {
       session = HibernateConnector.getSession();
-      Criteria criteria = session.createCriteria(User.class);
-      List<User> users = criteria.add(Restrictions.between("birthDate", dateInf, dateSup)).list();
+      CriteriaBuilder cb = session.getCriteriaBuilder();
+      CriteriaQuery<User> query = cb.createQuery(User.class);
+      Root<User> userRoot = query.from(User.class);
+      query.select(userRoot)
+          .where(cb.between(userRoot.get("birthDate").as(Date.class), dateInf, dateSup)).orderBy(
+              cb.asc(userRoot.get("name").as(Date.class)));
+      List<User> users = session.createQuery(query).list();
       Map<String, List<String>> result = new HashMap<>();
 
       for (User user : users) {
@@ -233,6 +261,7 @@ public class UserDao implements IUserDao {
         NameLastName.add(2, user.getBirthDate().toString());
         result.put(user.getEmail(), NameLastName);
       }
+
       return result;
 
     } finally {
